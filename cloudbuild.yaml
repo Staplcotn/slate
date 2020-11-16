@@ -1,0 +1,30 @@
+steps:
+  - name: "gcr.io/kaniko-project/executor:latest"
+    id: Build
+    args:
+      - --destination=us.gcr.io/$PROJECT_ID/$_SERVICE_NAME
+      - --cache=true
+      - --cache-ttl=10h
+      - "--build-arg=NPM_TOKEN=$_NPM_TOKEN"
+      - "--build-arg=PUBLIC_URL=/$_SERVICE_NAME"
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: Deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - "--platform=managed"
+      - "--image=us.gcr.io/$PROJECT_ID/$_SERVICE_NAME:latest"
+      - "--region=us-central1"
+      - "--quiet"
+      - "--set-env-vars=AWS_ID=$_AWS_ID"
+      - "--set-env-vars=AWS_SECRET=$_AWS_SECRET"
+      - "--set-env-vars=NODE_ENV=$_NODE_ENV"
+      - "--set-env-vars=PUBLIC_URL=/$_SERVICE_NAME"
+      - "--set-env-vars=STAPL_API_URL=$_STAPL_API_URL"
+options:
+  substitutionOption: ALLOW_LOOSE
+substitutions:
+  _SERVICE_NAME: ${REPO_NAME}${BRANCH_NAME%main}

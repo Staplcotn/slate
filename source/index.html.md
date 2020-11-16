@@ -2,240 +2,73 @@
 title: API Reference
 
 language_tabs: # must be one of https://git.io/vQNgJ
-  - shell
-  - ruby
-  - python
-  - javascript
 
 toc_footers:
-  - <a href='#'>Sign Up for a Developer Key</a>
+  - <a href='https://staplcotn.okta.com/app/UserHome'>Staplcotn Employee Apps</a>
+  - <a href='https://www.npmjs.com/package/@okta/okta-react'> @okta/okta-react SDK</a>
   - <a href='https://github.com/slatedocs/slate'>Documentation Powered by Slate</a>
-
 includes:
-  - errors
-
+  - getting-started
+  # - containers-&-u
+  - install-private-packages
+  - tag-your-container
+  - resource-files
+  - a_new_project
 search: true
 
 code_clipboard: true
 ---
 
-# Introduction
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+  .mermaid {margin-left: 2rem;}
+</style>
 
-Welcome to the Kittn API! You can use our API to access Kittn API endpoints, which can get information on various cats, kittens, and breeds in our database.
+# Overview
 
-We have language bindings in Shell, Ruby, Python, and JavaScript! You can view code examples in the dark area to the right, and you can switch the programming language of the examples with the tabs in the top right.
+## Intent of this Document
 
-This example API documentation page was created with [Slate](https://github.com/slatedocs/slate). Feel free to edit it and use it as a base for your own API's documentation.
-
-# Authentication
-
-> To authorize, use this code:
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
+```text
+  # Examples and code snippets will be over here.
 ```
 
-```python
-import kittn
+This documentation is going to show you how to run your app on our Kubernetes cluster and get internet traffic to it.
 
-api = kittn.authorize('meowmeowmeow')
-```
+To do so, you'll:
 
-```shell
-# With shell, you can just pass the correct header with each request
-curl "api_endpoint_here"
-  -H "Authorization: meowmeowmeow"
-```
+- Containerize your app into a [container](https://www.docker.com/resources/what-container).
 
-```javascript
-const kittn = require('kittn');
+- Use Gitlab Runner to build your container for you
 
-let api = kittn.authorize('meowmeowmeow');
-```
+- (and maybe) Use environment variables and utilize [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) to store API keys.
 
-> Make sure to replace `meowmeowmeow` with your API key.
+The other sections under "Getting Started" are not necessary reads, but I do try to give context about some **inner workings of our cluster that aren't easily googleable** and could be confusing later in the document and while troubleshooting.
 
-Kittn uses API keys to allow access to the API. You can register a new Kittn API key at our [developer portal](http://example.com/developers).
+## Networking in our cluster
 
-Kittn expects for the API key to be included in all API requests to the server in a header that looks like the following:
+Networking in our Kubernetes cluster revolves around [Istio](https://istio.io/latest/docs/concepts/what-is-istio/) and it's `virtualservices`. By configuring a VirtualService for your app ([see below](#resource-files)), you'll tell Kubernetes (and, more technically, Istio) what _hostname_ (such as `https://api-test.staplcotn.com`) your app expects to be registered on.
 
-`Authorization: meowmeowmeow`
+## Applying changes to our cluster
 
-<aside class="notice">
-You must replace <code>meowmeowmeow</code> with your personal API key.
-</aside>
+Common practice in K8Sland is to store as much of your cluster's configuration in a `git` repo and apply it with a tool like [Argo](https://argoproj.github.io/argo-cd/). In our case, our cluster's configuration is stored in [devops/aws](https://gitlab.staplcotn.com/devops/aws) and Argo is available at [https://argo.dev.staplcotn.com](https://argo.dev.staplcotn.com)
 
-# Kittens
+<div class="mermaid">
+     graph TD
+      style C fill:#FFAAAA;
+      style apply fill:#D4EE9F;
+      A[Tell Argo to update Application] --> B[Argo applies .yml file to cluster for you]
+      B-->C[fa:fa-ban Error fetching image]
+      B-->apply(fa:fa-check);
 
-## Get All Kittens
+</div>
 
-```ruby
-require 'kittn'
+## To Document:
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get
-```
+- K8s & docker pull permissions
 
-```python
-import kittn
+- Argo weirdness (paths)
+- [configmaps](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#define-a-container-environment-variable-with-data-from-a-single-configmap)
 
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get()
-```
-
-```shell
-curl "http://example.com/api/kittens"
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let kittens = api.kittens.get();
-```
-
-> The above command returns JSON structured like this:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Fluffums",
-    "breed": "calico",
-    "fluffiness": 6,
-    "cuteness": 7
-  },
-  {
-    "id": 2,
-    "name": "Max",
-    "breed": "unknown",
-    "fluffiness": 5,
-    "cuteness": 10
-  }
-]
-```
-
-This endpoint retrieves all kittens.
-
-### HTTP Request
-
-`GET http://example.com/api/kittens`
-
-### Query Parameters
-
-Parameter | Default | Description
---------- | ------- | -----------
-include_cats | false | If set to true, the result will also include cats.
-available | true | If set to false, the result will include kittens that have already been adopted.
-
-<aside class="success">
-Remember — a happy kitten is an authenticated kitten!
-</aside>
-
-## Get a Specific Kitten
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2"
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.get(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "name": "Max",
-  "breed": "unknown",
-  "fluffiness": 5,
-  "cuteness": 10
-}
-```
-
-This endpoint retrieves a specific kitten.
-
-<aside class="warning">Inside HTML code blocks like this one, you can't use Markdown, so use <code>&lt;code&gt;</code> blocks to denote code.</aside>
-
-### HTTP Request
-
-`GET http://example.com/kittens/<ID>`
-
-### URL Parameters
-
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to retrieve
-
-## Delete a Specific Kitten
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2"
-  -X DELETE
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.delete(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "deleted" : ":("
-}
-```
-
-This endpoint deletes a specific kitten.
-
-### HTTP Request
-
-`DELETE http://example.com/kittens/<ID>`
-
-### URL Parameters
-
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to delete
-
+- NPM token in envorinment so builds work
+<script>mermaid.initialize({startOnLoad:true});</script>
